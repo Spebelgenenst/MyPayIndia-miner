@@ -1,2 +1,2 @@
 # MyMinerIndia
-I better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and make money $$$$
+A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and make money $$$$
