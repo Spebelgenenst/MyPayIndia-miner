@@ -24,7 +24,11 @@ def login():
 
     response = requests.post(url, json=payload).json()
 
-    return response.get("success"), response.get("data").get("session_id")
+    if not response.get("success"):
+        print("login data wrong!")
+        quit()
+
+    return response.get("data").get("session_id")
 
 def check_session(session_id):
     if session_id:
@@ -36,11 +40,7 @@ def check_session(session_id):
     if not response.get("error") == 1001:
         return
 
-    success, session_id = login()
-
-    if not success:
-        print("login data wrong!")
-        quit()
+    session_id = login()
 
     config["sessionID"] = session_id
     with open('config.json', 'w') as f:
@@ -57,7 +57,7 @@ def check_for_cooldown(headers, url):
 def sleep_time_calibration(headers, url):
     check_for_cooldown(headers, url)
 
-    print("started calibration")
+    print("started calibration... (this may take a while (it will take more than 5 mins))")
     clicks_per_second = 1 # (you have to multiply them by 10)
     loss = 0
     tries = 100
@@ -69,16 +69,13 @@ def sleep_time_calibration(headers, url):
 
         for i in range(0, tries):
             response = requests.get(url, headers=headers).json()
-            #print(i, response.get("success"))
             if not response.get("success"):
                 loss += 1
             sleep(sleep_time)
 
         successfull_clicks_percent = (tries - loss) / tries
         succesfull_cps = clicks_per_second * successfull_clicks_percent
-        print("clicks per second: ", clicks_per_second)
-        print("successfull cps: ",succesfull_cps)
-        print("-------")
+        print("cps: ", clicks_per_second, "successful: ", succesfull_cps)
         if succesfull_cps < best_successfull_cps:
             clicks_per_second -= 0.1
             break
@@ -117,7 +114,7 @@ if not sleep_time:
 
 
 # the real magic
+print("mining started....")
 while True:
     response = requests.get(url, headers=headers).json()
-    #print(response.get("success"))
     sleep(sleep_time)
