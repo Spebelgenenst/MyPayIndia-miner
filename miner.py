@@ -118,5 +118,5 @@ if not sleep_time:
 # the real magic
 print("mining started....")
 while True:
-    response = requests.get(url, headers=headers).json()
+    response = requests.get(url, headers=headers)
     sleep(sleep_time)
