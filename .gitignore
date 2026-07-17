@@ -1,4 +1,6 @@
 config.json
+test/
+curl.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
