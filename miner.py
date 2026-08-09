@@ -4,13 +4,20 @@ import json
 
 BASE_URL = "https://mypayindia.com"
 
-with open("config.json", "r") as f:
-    config = json.load(f)
+config_file = "config.json"
+
+try:
+    with open(config_file, "r") as f:
+        config = json.load(f)
+    sleep_time = config["sleepTime"]
+    session_ids = config["sessionID"]
+
+except (FileNotFoundError, json.JSONDecodeError, KeyError):
+    config = {"sessionID": [], "sleepTime": ""}
+    with open(config_file, "w") as f:
+        json.dump(config, f)
 
 session = requests.Session()
-
-session.cookies.set("PHPSESSID", config["sessionID"])
-sleep_time = config["sleepTime"]
 
 def mine(csrf_token, session):
     headers = {
