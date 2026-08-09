@@ -4,24 +4,36 @@ A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and 
 ![MyPayIndia Miner Logo](https://github.com/Spebelgenenst/MyPayIndia-miner/blob/main/assets/mpi-miner.png?raw=true)
 
 ## Setup
-clone the repo (or you can just download it as a zip)
+download the latest release
 ```
-git clone https://github.com/Spebelgenenst/MyPayIndia-miner
-cd MyPayIndia-miner
+curl -o miner.py https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest/download/miner.py
 ```
-create config.json
+create a virtual environment
 ```
-nano config.json
+python -m venv .venv
 ```
-with the following content:
+activate the virtual environment **this needs to be done everytime to execute the programm**
 ```
-{"sessionID": "", "sleepTime": ""}
+source .venv/bin/activate
 ```
-**run the program** (first time setup may take a while)
+install requirements:
+```
+pip install requests
+```
+run the program (calibration may take a while)
 ```
 python miner.py
 ```
 note: Any information provided by the program regarding the CPS must be multiplied by 10 to be comparable to MyPayinda
+
+## How do the programm works (concept)
+
+1. create a session
+2. set PHPSESSID to your session id
+3. get the X-CSRF-TOKEN **from** the javascript **for** the header
+4. post request to https://mypayindia.com/iotm/button/click for mining
+
+(the XSRF-TOKEN in the cookies is not important)
 
 ## License
 This project is licensed under the GNU General Public License ver3 or later. See the [LICENSE](LICENSE) file for details.
