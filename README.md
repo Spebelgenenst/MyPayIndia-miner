@@ -3,7 +3,7 @@ A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and 
 
 ![MyPayIndia Miner Logo](https://github.com/Spebelgenenst/MyPayIndia-miner/blob/main/assets/mpi-miner.png?raw=true)
 
-## Setup
+## Setup (linux/macos)
 download the latest release
 ```
 curl -o miner.py https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest/download/miner.py
