@@ -34,13 +34,14 @@ CONFIG_FILE = "config.json" if not args.config else args.config
 try:
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
-    sleep_time = config["sleepTime"]
-    session_ids = config["sessionID"]
 
 except (FileNotFoundError, json.JSONDecodeError, KeyError):
     config = {"sessionID": [], "sleepTime": ""}
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
+
+sleep_time = config["sleepTime"]
+session_ids = config["sessionID"]
 
 def mine(csrf_token, session_id):
     headers = {
