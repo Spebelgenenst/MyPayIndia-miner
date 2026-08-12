@@ -236,4 +236,6 @@ if args.mine:
         for session_id in session_ids:
             mine(csrf_token, session_id)
 
-        time.sleep(sleep_time - (time.time() - start_time))
+        elapsed = time.time() - start_time
+        if elapsed < sleep_time:
+            time.sleep(sleep_time - elapsed)
