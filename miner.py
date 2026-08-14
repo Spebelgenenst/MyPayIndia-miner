@@ -2,6 +2,7 @@ import requests
 import time
 import json
 import argparse
+import threading
 
 parser = argparse.ArgumentParser(
     prog='MyPayIndia Miner',
@@ -11,7 +12,9 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-m", "--mine", help="start mining", action='store_true')
 
-parser.add_argument("-l", "--list", help="list all acounts and removes invalid session ids", action='store_true')
+parser.add_argument("-l", "--leader", help="set a leader. All money will be send to that user. Write the username or none")
+
+parser.add_argument("-ls", "--list", help="list all acounts and removes invalid session ids", action='store_true')
 parser.add_argument("-a", "--add", help="add a new account. write username or session id")
 parser.add_argument("-r", "--remove", help="removes an account. write number or session id")
 
@@ -35,13 +38,18 @@ try:
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
+    sleep_time = config["sleepTime"]
+    session_ids = config["sessionID"]
+    leader = config["leader"]
+
 except (FileNotFoundError, json.JSONDecodeError, KeyError):
-    config = {"sessionID": [], "sleepTime": ""}
+    config = {"sessionID": [], "sleepTime": "", "leader": ""}
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
 
-sleep_time = config["sleepTime"]
-session_ids = config["sessionID"]
+    sleep_time = config["sleepTime"]
+    session_ids = config["sessionID"]
+    leader = config["leader"]
 
 def mine(csrf_token, session_id):
     headers = {
@@ -51,6 +59,29 @@ def mine(csrf_token, session_id):
     url = BASE_URL+"/iotm/button/click"
     return requests.post("https://mypayindia.com/iotm/button/click", headers=headers)
 
+def send_to_leader(leader, session_ids):
+    for session_id in session_ids:
+        headers = {
+            "Authorization": f"Bearer {session_id}"
+        }
+        url=BASE_URL+"/api/v2/user/info"
+        response = requests.get(url, headers=headers).json().get("data")
+        username = response.get("username")
+        balance = response.get("balance")
+
+        if username == leader:
+            continue
+
+        url=BASE_URL+"/api/v2/transaction/transfer"
+        payload = {
+            "recipient": leader,
+            "amount": balance,
+            "note": "mypayindia miner earnings"
+        }
+        response = requests.post(url, json=payload, headers=headers).json()
+
+        if not response.get("success"):
+            print(f"error: user: {username} could not send {balance} to {leader}\n{response}")
 
 def get_csrf_token(session_id):
     headers = {
@@ -111,7 +142,7 @@ def check_users(session_ids):
     for index, session_id in enumerate(session_ids):
         name, valid = check_session(session_id)
         if valid:
-            output += f"\n{index} {name}"
+            output += f"{index} {name}\n"
         else:
             config["sessionID"].remove(session_id)
             with open(CONFIG_FILE, 'w') as f:
@@ -119,7 +150,7 @@ def check_users(session_ids):
             session_ids = config["sessionID"]
             accs_removed += 1
 
-    output += f"\ninvalid session ids removed: {accs_removed}"
+    output += f"invalid session ids removed: {accs_removed}"
     return output, session_ids
 
 def check_for_cooldown(csrf_token, session_id):
@@ -172,6 +203,14 @@ def sleep_time_calibration(csrf_token, session_id):
 
     return sleep_time
 
+if args.leader:
+    leader = args.leader if not args.leader == "none" else None
+
+    config["leader"] = leader
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f)
+    print(f"succesfully set {leader} as leader!")
+
 if args.list:
     output, session_ids = check_users(session_ids)
     print(output)
@@ -204,23 +243,16 @@ if args.remove:
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f)
 
-    
-
-
-if not (args.calibrate or args.mine):
-    quit()
-
-_, session_ids = check_users(session_ids)
-
-if len(session_ids) == 0:
-    print("unable to do this action, no user registered! please use -a to add a user")
-    quit()
-csrf_token = get_csrf_token(session_ids[0])
 
 if not sleep_time or args.calibrate:
     if input("Do you wanna use the default value instead of starting calibration? (Y|n)") != "n":
         sleep_time = 0.6666666666666665
     else:
+        _, session_ids = check_users(session_ids)
+        if len(session_ids) == 0:
+            print("unable to do this action, no user registered! please use -a to add a user")
+            quit()
+        csrf_token = get_csrf_token(session_ids[0])
         sleep_time = sleep_time_calibration(csrf_token, session_ids[0])
 
     config["sleepTime"] = sleep_time
@@ -229,13 +261,21 @@ if not sleep_time or args.calibrate:
 
 if args.mine:
     # the real magic
+    sleep_per_id = sleep_time / len(session_ids)
     print("mining started....")
     while True:
-        start_time = time.time()
+        output, session_ids = check_users(session_ids)
+        if len(session_ids) == 0:
+            print("unable to do this action, no user registered! please use -a to add a user")
+            quit()
 
-        for session_id in session_ids:
-            mine(csrf_token, session_id)
+        print(output)
+        csrf_token = get_csrf_token(session_ids[0]) # That is not really important, but it should not be deleted
+        if leader:
+            send_to_leader(leader, session_ids)
 
-        elapsed = time.time() - start_time
-        if elapsed < sleep_time:
-            time.sleep(sleep_time - elapsed)
+        for i in range(0,100000):
+            for session_id in session_ids:
+                t = threading.Thread(target=mine, kwargs={"csrf_token": csrf_token, "session_id": session_id})
+                t.start()
+                time.sleep(sleep_per_id)
