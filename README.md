@@ -3,30 +3,41 @@ A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and 
 
 ![MyPayIndia Miner Logo](https://github.com/Spebelgenenst/MyPayIndia-miner/blob/main/assets/mpi-miner.png?raw=true)
 
-## Setup (linux/macos)
-download the latest release
+## Setup
+### Quickstart
+1. go to [the latest release](https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest) and download the correct file for your os
+2. run it in the terminal
 ```
-curl -o miner.py https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest/download/miner.py
+miner --help
 ```
-create a virtual environment
 ```
-python -m venv .venv
+miner.exe --help
 ```
-activate the virtual environment **this needs to be done everytime to execute the programm**
+
+### Build it from source
+1. install pyinstaller
 ```
-source .venv/bin/activate
+pip install pyinstaller
 ```
-install requirements:
+2. go to [the latest release](https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest) and download miner.py
+3. (recommended) put miner.py in a new directory (not downloads)
+4. build
+```
+pyinstaller miner.py --onefile
+```
+
+### without pyinstaller
+1. go to [the latest release](https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest) and download miner.py
+2. install requests
 ```
 pip install requests
 ```
-run the program (calibration may take a while)
+3. run it
 ```
-python miner.py
+python miner.py --help
 ```
-note: Any information provided by the program regarding the CPS must be multiplied by 10 to be comparable to MyPayinda
 
-## How do the programm works (concept)
+## How do the programm works
 
 1. create a session
 2. set PHPSESSID to your session id
