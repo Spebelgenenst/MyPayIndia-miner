@@ -62,7 +62,7 @@ def mine(csrf_token, session_id):
         "Authorization": f"Bearer {session_id}"
     }
     url = BASE_URL+"/iotm/button/click"
-    return requests.post("https://mypayindia.com/iotm/button/click", headers=headers)
+    return requests.post(url, headers=headers)
 
 def send_to_leader(leader, session_ids):
     for session_id in session_ids:
@@ -93,7 +93,8 @@ def get_csrf_token(session_id):
         "Authorization": f"Bearer {session_id}"
     }
 
-    response = requests.get("https://mypayindia.com/iotm/button", headers=headers).text
+    url = BASE_URL + "/iotm/button"
+    response = requests.get(url, headers=headers).text
 
     search = "const csrfToken = \""
     csrf_token_location = response.find(search)
