@@ -4,6 +4,8 @@ A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and 
 ![MyPayIndia Miner Logo](https://github.com/Spebelgenenst/MyPayIndia-miner/blob/main/assets/mpi-miner.png?raw=true)
 
 ## Setup
+> [!note]
+> I recommend using multiple ips for 10+ accounts and you should select a leader.
 ### Quickstart
 1. go to [the latest release](https://github.com/Spebelgenenst/MyPayIndia-miner/releases/latest) and download the correct file for your os
 2. run it in the terminal
