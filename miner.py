@@ -4,6 +4,11 @@ import json
 import argparse
 import threading
 
+# TODO:
+# - change default delay
+# - add threads to delay cali
+# - make the program more stable with try except blocks
+
 parser = argparse.ArgumentParser(
     prog='MyPayIndia Miner',
     description="A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and make money $$$$",
