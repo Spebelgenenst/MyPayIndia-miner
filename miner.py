@@ -3,11 +3,12 @@ import time
 import json
 import argparse
 import threading
+from requests.exceptions import ConnectionError
 
 # TODO:
 # - change default delay
 # - add threads to delay cali
-# - make the program more stable with try except blocks
+# - review all request and look at the try except blocks
 
 parser = argparse.ArgumentParser(
     prog='MyPayIndia Miner',
@@ -62,7 +63,11 @@ def mine(csrf_token, session_id):
         "Authorization": f"Bearer {session_id}"
     }
     url = BASE_URL+"/iotm/button/click"
-    return requests.post(url, headers=headers)
+    try:
+        return requests.post(url, headers=headers)
+    except ConnectionError as e:
+        print(e)
+        return False
 
 def send_to_leader(leader, session_ids):
     for session_id in session_ids:
@@ -70,7 +75,10 @@ def send_to_leader(leader, session_ids):
             "Authorization": f"Bearer {session_id}"
         }
         url=BASE_URL+"/api/v2/user/info"
-        response = requests.get(url, headers=headers).json().get("data")
+        try:
+            response = requests.get(url, headers=headers).json().get("data")
+        except (ConnectionError, json.JSONDecodeError):
+            response = {}
         username = response.get("username")
         balance = response.get("balance")
 
@@ -83,7 +91,10 @@ def send_to_leader(leader, session_ids):
             "amount": balance,
             "note": "mypayindia miner earnings"
         }
-        response = requests.post(url, json=payload, headers=headers).json()
+        try:
+            response = requests.post(url, json=payload, headers=headers).json()
+        except (ConnectionError, json.JSONDecodeError):
+            response = {}
 
         if not response.get("success"):
             print(f"error: user: {username} could not send {balance} to {leader}\n{response}")
@@ -122,7 +133,10 @@ def login(username):
     }
     url=BASE_URL+"/api/v2/auth/login"
 
-    response = requests.post(url, json=payload).json()
+    try:
+        response = requests.post(url, json=payload).json()
+    except (ConnectionError, json.JSONDecodeError):
+        response = {}
 
     if not response.get("success"):
         print("login data may be wrong!")
@@ -136,11 +150,18 @@ def check_session(session_id):
         "Authorization": f"Bearer {session_id}"
     }
 
-    response = requests.get(url, headers=headers).json()
+    try:
+        response = requests.get(url, headers=headers).json()
+    except (ConnectionError, json.JSONDecodeError):
+        return "Could not load", True
+
     if response.get("success"):
         return response.get("data").get("username"), True
 
-    return None, False
+    if response.get("error") == 1001:
+        return None, False
+
+    return "unknown error", True
 
 def check_users(session_ids):
     output = ""
@@ -161,7 +182,10 @@ def check_users(session_ids):
 
 def check_for_cooldown(csrf_token, session_id):
     # make sure there is no cooldown rn
-    response = mine(csrf_token, session_id).json()
+    try:
+        response = mine(csrf_token, session_id).json()
+    except json.JSONDecodeError:
+        response = {}
     if not response.get("success"):
         print("\"slow down\" cooldown... please wait a sec")
         time.sleep(19)
@@ -181,7 +205,10 @@ def sleep_time_calibration(csrf_token, session_id):
         sleep_time = 1/clicks_per_second
 
         for i in range(0, tries):
-            response = mine(csrf_token, session_id).json()
+            try:
+                response = mine(csrf_token, session_id).json()
+            except json.JSONDecodeError:
+                response = {}
             if not response.get("success"):
                 loss += 1
             time.sleep(sleep_time)
@@ -251,7 +278,7 @@ if args.remove:
 
 
 if not sleep_time or args.calibrate:
-    if input("Do you wanna use the default value instead of starting calibration? (Y|n)") != "n":
+    if input("Do you wanna use the default value instead of starting calibration? (yes you do) (Y|n)") != "n":
         sleep_time = 0.6666666666666665
     else:
         _, session_ids = check_users(session_ids)
@@ -267,7 +294,6 @@ if not sleep_time or args.calibrate:
 
 if args.mine:
     # the real magic
-    sleep_per_id = sleep_time / len(session_ids)
     print("mining started....")
     while True:
         output, session_ids = check_users(session_ids)
@@ -280,6 +306,7 @@ if args.mine:
         if leader:
             send_to_leader(leader, session_ids)
 
+        sleep_per_id = sleep_time / len(session_ids)
         for i in range(0,100000):
             for session_id in session_ids:
                 t = threading.Thread(target=mine, kwargs={"csrf_token": csrf_token, "session_id": session_id})
