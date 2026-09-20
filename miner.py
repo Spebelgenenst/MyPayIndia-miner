@@ -7,8 +7,6 @@ from requests.exceptions import ConnectionError
 
 # TODO:
 # - change default delay
-# - add threads to delay cali
-# - review all request and look at the try except blocks
 
 parser = argparse.ArgumentParser(
     prog='MyPayIndia Miner',
@@ -78,7 +76,8 @@ def send_to_leader(leader, session_ids):
         try:
             response = requests.get(url, headers=headers).json().get("data")
         except (ConnectionError, json.JSONDecodeError):
-            response = {}
+            print("connection error")
+            continue
         username = response.get("username")
         balance = response.get("balance")
 
@@ -94,7 +93,8 @@ def send_to_leader(leader, session_ids):
         try:
             response = requests.post(url, json=payload, headers=headers).json()
         except (ConnectionError, json.JSONDecodeError):
-            response = {}
+            print("connection error")
+            continue
 
         if not response.get("success"):
             print(f"error: user: {username} could not send {balance} to {leader}\n{response}")
@@ -136,7 +136,7 @@ def login(username):
     try:
         response = requests.post(url, json=payload).json()
     except (ConnectionError, json.JSONDecodeError):
-        response = {}
+        print("connection error")
 
     if not response.get("success"):
         print("login data may be wrong!")
@@ -185,7 +185,7 @@ def check_for_cooldown(csrf_token, session_id):
     try:
         response = mine(csrf_token, session_id).json()
     except json.JSONDecodeError:
-        response = {}
+        response = {"success": False}
     if not response.get("success"):
         print("\"slow down\" cooldown... please wait a sec")
         time.sleep(19)
@@ -205,13 +205,15 @@ def sleep_time_calibration(csrf_token, session_id):
         sleep_time = 1/clicks_per_second
 
         for i in range(0, tries):
+            start_time = time.time()
             try:
                 response = mine(csrf_token, session_id).json()
             except json.JSONDecodeError:
+                print("your connection is not great, this could affect the process")
                 response = {}
             if not response.get("success"):
                 loss += 1
-            time.sleep(sleep_time)
+            time.sleep(sleep_time - (time.time() - start_time))
 
         successfull_clicks_percent = (tries - loss) / tries
         succesfull_cps = clicks_per_second * successfull_clicks_percent
