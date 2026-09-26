@@ -16,16 +16,17 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-m", "--mine", help="start mining", action='store_true')
 
-parser.add_argument("-l", "--leader", help="set a leader. All money will be send to that user. Write the username or none")
+parser.add_argument("-l", "--leader", help="set a leader! All the money will be send to that user. Write the username or none (Note: this value will be saved)")
 
-parser.add_argument("-ls", "--list", help="list all acounts and removes invalid session ids", action='store_true')
-parser.add_argument("-a", "--add", help="add a new account. write username or session id")
+parser.add_argument("-ls", "--list", help="list all acounts and remove invalid session ids", action='store_true')
+parser.add_argument("-a", "--add", help="add a new account! write username or session id")
 parser.add_argument("-r", "--remove", help="removes an account. write number or session id")
 
-parser.add_argument("-c", "--config", help="select the config file (default: CONFIG_FILE)")
-parser.add_argument("-u", "--url", help="select the base url (default: https://mypayindia.com)")
+parser.add_argument("-c", "--config", help="select the config file default: CONFIG_FILE)")
+parser.add_argument("-u", "--url", help="select the base url default: https://mypayindia.com")
+parser.add_argument("-cy", "--cycles", help="how many request cycles before the money gets send to the leader and every session ID is checked (default: 100000, Note: this value will be saved)", type=int)
 
-parser.add_argument("-d", "--calibrate", help="(re)calibrate the delay for each request", action='store_true')
+parser.add_argument("-d", "--calibrate", help="calibrate the delay for each request", action='store_true')
 
 args = parser.parse_args()
 
@@ -34,26 +35,23 @@ if not any(vars(args).values()):
     parser.print_help()
     quit()
 
-BASE_URL = "https://mypayindia.com" if not args.url else args.url
+BASE_URL = args.url or "https://mypayindia.com"
 
-CONFIG_FILE = "config.json" if not args.config else args.config
+CONFIG_FILE = args.config or "config.json"
 
 try:
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
 
-    sleep_time = config["sleepTime"]
-    session_ids = config["sessionID"]
-    leader = config["leader"]
-
-except (FileNotFoundError, json.JSONDecodeError, KeyError):
-    config = {"sessionID": [], "sleepTime": "", "leader": ""}
+except (FileNotFoundError, json.JSONDecodeError):
+    config = {"sessionID": [], "sleepTime": None, "leader": None, "cycles": 100000} #i don't need to write the config with every optional thing. but i want to keep the config readable
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
 
-    sleep_time = config["sleepTime"]
-    session_ids = config["sessionID"]
-    leader = config["leader"]
+sleep_time = config.get("sleepTime")
+session_ids = config.get("sessionID")
+leader = config.get("leader")
+cycles = config.get("cycles", 100000)
 
 def mine(csrf_token, session_id):
     headers = {
@@ -171,10 +169,10 @@ def check_users(session_ids):
         if valid:
             output += f"{index} {name}\n"
         else:
-            config["sessionID"].remove(session_id)
+            session_ids.remove(session_id)
+            config["sessionID"] = session_ids
             with open(CONFIG_FILE, 'w') as f:
                 json.dump(config, f)
-            session_ids = config["sessionID"]
             accs_removed += 1
 
     output += f"invalid session ids removed: {accs_removed}"
@@ -238,6 +236,27 @@ def sleep_time_calibration(csrf_token, session_id):
 
     return sleep_time
 
+def maintenance(leader, session_ids):
+    output, session_ids = check_users(session_ids)
+    if len(session_ids) == 0:
+        print("unable to do this action, no user registered! please use -a to add a user")
+        quit()
+
+    print(output)
+    csrf_token = get_csrf_token(session_ids[0]) # That is not really important, but it should not be deleted
+    if leader:
+        send_to_leader(leader, session_ids)
+
+    return session_ids, csrf_token
+
+if args.cycles:
+    cycles = args.cycles
+
+    config["cycles"] = cycles
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f)
+    print(f"succesfully set {cycles} cycles!")
+
 if args.leader:
     leader = args.leader if not args.leader == "none" else None
 
@@ -298,18 +317,10 @@ if args.mine:
     # the real magic
     print("mining started....")
     while True:
-        output, session_ids = check_users(session_ids)
-        if len(session_ids) == 0:
-            print("unable to do this action, no user registered! please use -a to add a user")
-            quit()
-
-        print(output)
-        csrf_token = get_csrf_token(session_ids[0]) # That is not really important, but it should not be deleted
-        if leader:
-            send_to_leader(leader, session_ids)
+        session_ids, csrf_token = maintenance(session_ids=session_ids, leader=leader)
 
         sleep_per_id = sleep_time / len(session_ids)
-        for i in range(0,100000):
+        for i in range(0,cycles):
             for session_id in session_ids:
                 t = threading.Thread(target=mine, kwargs={"csrf_token": csrf_token, "session_id": session_id})
                 t.start()
