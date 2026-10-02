@@ -1,6 +1,9 @@
 # MyPayIndia-miner
 A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and make money $$$$ (~2500inr per month)
 
+> [!important]
+> multiple accounts per person is against the ToS
+
 ![MyPayIndia Miner Logo](https://github.com/Spebelgenenst/MyPayIndia-miner/blob/main/assets/mpi-miner.png?raw=true)
 
 ## Setup
