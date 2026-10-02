@@ -16,7 +16,7 @@ A better free lightweight autoclicker for MyPayIndia. Mine MPI inr for free and 
 miner --help
 ```
 ```
-miner.exe --help
+.\miner.exe --help
 ```
 
 ### Build it from source
